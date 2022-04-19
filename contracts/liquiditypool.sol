@@ -114,12 +114,12 @@ contract liquidity{
    function  timeToNextWithdrawal ()public view returns(uint timer){
        assembly{
         let x := sload(withdrawal_counter.slot)
-        switch gt(x, 0)
+        switch iszero(x)
         case 0 {
-           x := sub(timestamp(),x)     
+           timer := add(timestamp(), 1200)     
         }
-        default{
-            x := x
+        case 1 {
+            timer := sub(timestamp(),300)
         }
        }
    }
