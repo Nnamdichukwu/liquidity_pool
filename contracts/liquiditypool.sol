@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
+
 contract liquidity{
     struct PoolInfo{
         string desc;
@@ -56,7 +57,9 @@ contract liquidity{
         require(pool_liquidity[owner].totalContributors < pool_info[owner].maxPoolSize);
         uint balance = msg.value- pool_info[_to].amount   ;
         lps[msg.sender] = 1;
+        
         uint amount = msg.value - balance; 
+
         pool_liquidity[_to].totalLiquidity += amount;
         pool_liquidity[_to].contributors[msg.sender] += amount;
         pool_liquidity[_to].totalContributors++;
@@ -107,5 +110,17 @@ contract liquidity{
        pool_liquidity[from].paid_out[msg.sender] = true;
        payable(address(_to)).transfer(amount); 
        withdrawal_counter = block.timestamp;
+   }
+   function  timeToNextWithdrawal ()public view returns(uint timer){
+       assembly{
+        let x := sload(withdrawal_counter.slot)
+        switch gt(x, 0)
+        case 0 {
+           x := sub(timestamp(),x)     
+        }
+        default{
+            x := x
+        }
+       }
    }
 }
