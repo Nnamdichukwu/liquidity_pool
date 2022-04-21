@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
-
 contract liquidity{
     struct PoolInfo{
         string desc;
@@ -13,6 +12,7 @@ contract liquidity{
         mapping(address => bool) creator_count;
        
     }
+   uint private immutable power = 10 **18;
     struct Pool_liquidity{
         mapping(address => uint) contributors;
         uint totalLiquidity;
@@ -22,11 +22,11 @@ contract liquidity{
         uint total_withdrawals;
     }
     address public owner;
-    uint private withdrawal_counter;
+    uint public withdrawal_counter;
     mapping(address => uint) public lps;
     mapping (address => PoolInfo) public pool_info;
     mapping (address => Pool_liquidity) public pool_liquidity;
-    uint public start = block.timestamp;
+    //uint public start = block.timestamp;
     modifier requireOwner (){
         require(msg.sender == owner);
         _;
@@ -40,26 +40,29 @@ contract liquidity{
         require(!pool_info[owner].creator_count[owner]);
         pool_info[msg.sender].creator = msg.sender;
         pool_info[msg.sender].desc = _desc;
-        pool_info[msg.sender].amount = _amount * 10 **18 ;
+        pool_info[msg.sender].amount = _amount * 10 ** 18 ; // using the power variable costs extra 25 gas here
         pool_info[msg.sender].pool_duration = block.timestamp + _duration ; 
         pool_info[msg.sender].maxPoolSize = _size;
         pool_info[msg.sender].start_date = block.timestamp ;
         pool_info[msg.sender].locktime = block.timestamp + _locktime;
     }
-    function getTime() public view returns(uint){
-       return pool_info[msg.sender].start_date ;
+    
+    
+    function getTime() public view returns(uint _timestamp){
+        assembly{
+            _timestamp := timestamp()
         }
-    function joinPool(address _to) public payable {
-        require (_to == owner);
-        require (msg.value * 10**18 >= pool_info[owner].amount, "too small");
+    }
+   
+    }
+     function _joinPool(address _to) public payable {
+        require (_to == owner, "You are not the owner");
+        require (msg.value * power >= pool_info[owner].amount, "too small"); // using power saves me 25 gas here
         require( block.timestamp <  pool_info[owner].pool_duration , "time has elapsed");
-        require (msg.value * 10**18 >= pool_info[owner].amount, "too small");
-        require(pool_liquidity[owner].totalContributors < pool_info[owner].maxPoolSize);
+        require(pool_liquidity[owner].totalContributors < pool_info[owner].maxPoolSize, "Pool size has been reached");
         uint balance = msg.value- pool_info[_to].amount   ;
         lps[msg.sender] = 1;
-        
-        uint amount = msg.value - balance; 
-
+        uint amount = msg.value - balance;
         pool_liquidity[_to].totalLiquidity += amount;
         pool_liquidity[_to].contributors[msg.sender] += amount;
         pool_liquidity[_to].totalContributors++;
@@ -77,10 +80,11 @@ contract liquidity{
            
       } 
     }
+    
     function rejoinPool(address _to) public payable{
          require (_to == owner);
         require(lps[msg.sender] >= 1);
-       require (msg.value * 10**18 >= pool_info[owner].amount, "too small");
+       require (msg.value * power >= pool_info[owner].amount, "too small");
        require(block.timestamp > withdrawal_counter);
         uint balance = msg.value- pool_info[_to].amount   ;
         lps[msg.sender] = 1;
