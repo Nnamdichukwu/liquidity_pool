@@ -21,11 +21,12 @@ contract liquidity{
         //mapping(adddress => uint) locktime;
         uint total_withdrawals;
     }
-    address public owner;
+    address public  owner;
     uint public withdrawal_counter;
     mapping(address => uint) public lps;
     mapping (address => PoolInfo) public pool_info;
     mapping (address => Pool_liquidity) public pool_liquidity;
+    event AdminUpdated(address newAdmin);
     //uint public start = block.timestamp;
     modifier requireOwner (){
         require(msg.sender == owner);
@@ -54,7 +55,7 @@ contract liquidity{
         }
     }
    
-    }
+    
      function _joinPool(address _to) public payable {
         require (_to == owner, "You are not the owner");
         require (msg.value * power >= pool_info[owner].amount, "too small"); // using power saves me 25 gas here
@@ -126,5 +127,9 @@ contract liquidity{
             timer := sub(timestamp(),300)
         }
        }
+   }
+   function changeAdmin(address newAdmin) public requireOwner{
+    owner = newAdmin;
+    emit AdminUpdated(owner);
    }
 }
